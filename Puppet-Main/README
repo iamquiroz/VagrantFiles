@@ -1,0 +1,131 @@
+# -*- mode: ruby -*
+#vi: set ft-ruby :
+Vagrant.configure("2") do |config|
+config.vm.box= "ubuntu/focal64"
+config.vm.provider "virtualbox" do |vb|
+vb.gui= false
+vb.memory = 2048
+vb.cpus - 2
+end
+# Enable provisioning with a shell script. Additional provisioners such as
+# Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
+# documentation for more information about their specific syntax and use.
+config.vm.provision "shell", inline: <<-SHELL
+
+# Install Puppet guide
+# https://www.puppet.com/docs/puppet/8/install_puppet.html#install_puppet
+	wget https://apt.puppetlabs.com/puppet8-release-focal.deb -0 puppet.deb
+	sudo dpkg -i puppet.deb
+sudo apt-get update
+SHELL
+# Config Manager VM (Puppet Server)
+config.vm.define "puppet-master", primary: true do |configl
+config.vm. hostname = "puppet-master"
+config.vm.network :private_network, ip: "10.0.0.10"
+config.vm.provision "file", source: "./site.pp", destination: "$HOME/site.pp"
+config.vm.provision "shell", inline: <<-SHELL
+sudo echo "sudo cp site.pp /etc/puppetlabs/code/environments/production/manifests" >> config.sh
+
+sudo chmod +x config.sh
+sudo apt-get install -y puppetserver
+sudo sed -i 's/-Xms2g -Xmx2g/-Xms 512m -Xmx512m/g' /etc/default/puppetserver
+sudo echo "*" >> /etc/puppetlabs/puppet/autosign.conf
+sudo /opt/puppetlabs/bin/puppet config set server puppet-master --section main
+sudo systemctl start puppetserver
+sudo systemctl status puppetserver
+sudo systemctl enable puppetserver
+sudo /opt/puppetlabs/bin/puppet module install puppet-archive --version 4.6.0
+sudo /opt/puppetlabs/bin/puppet module install puppetlabs-accounts
+sudo /opt/puppetlabs/bin/puppet module install puppetlabs-mysql
+sudo /opt/puppetlabs/bin/puppet module install puppetlabs-apache
+sudo /opt/puppetlabs/bin/puppet module install puppet-php
+sudo /opt/puppetlabs/bin/puppet module install adullact-wordpress
+./config.sh
+SHELL
+end
+end
+
+
+
+#wp.pp
+
+PuppetMaster >> site.pp
+creamos una cuenta para wordpress
+accounts::user { 'wp':
+uid => '4001',
+gid => '4001',
+shell => '/bin/bash',
+password=> '', I
+locked => false,
+}
+# instalamos el servicio de apache
+class {'apache':
+mpm_module => 'prefork',
+default_vhost => false,
+}
+# instalamos el modulo de php
+class {'apache::mod: :php':
+package_name => 'php',
+}
+# creamos el virtual host en donde se instalara el wordpress
+apache::vhost { 'wordpress':
+servername => 'wordpress',
+port => 80,
+docroot => '/var/www/wordpress',
+docroot_owner => 'wp',
+docroot_group => 'wp',
+}
+# instalamos paquetes que necesita wordpress para su correcto funcionamiento
+package { ['php-mysql', 'php-curl', 'php-gd', 'php-mbstring', 'php-xml', 'php-xmlrpc', 'php-soap']:
+ensure => 'installed",
+}
+
+# instalamos MySql
+class { 'mysql:: server':
+root_password => 'strongpassword',
+remove_default_accounts => true,
+restart => true,
+}
+# creamos usuario de mysql para wordpress
+mysql:: db { 'wp_db':
+user => 'wp_db_user', I
+password=> '1234admin',
+host => 'localhost',
+grant => ['ALL'],
+}
+
+# instalamos MySql
+class { 'mysql:: server':
+root_password => 'strongpassword',
+remove_default_accounts => true,
+restart => true,
+}
+# creamos usuario de mysql para wordpress
+mysql:: db { 'wp_db':
+user => 'wp_db_user', I
+password=> '1234admin',
+host => 'localhost',
+grant => ['ALL'],
+}
+
+
+# instala una instancia de wordpress sobre el virtual host de apache anteriomente creado
+# se pasan los datos adicionales para configura la instancia
+class { 'wordpress' :
+settings => {
+'localhost' => {
+wproot '/var/www/wordpress',
+owner => 'wp',
+dbhost => 'localhost',
+dbname => 'wp_db', I
+dbuser => 'wp_db_user',
+dbpasswd => '1234admin',
+wpadminuser => 'admin',
+wpadminpasswd => 'admin',
+wpadminemail => 'lol@mydomain.com',
+wptitle => 'Tarea 2 Puppet con Vagrant, Jairo Serrato',
+}
+}
+}
+
+

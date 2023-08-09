@@ -1,0 +1,12 @@
+Log created: 2023-08-07T08:22:26.159066000Z
+Process ID:  30295 (0x7657)
+Parent PID:  1 (0x1)
+Executable:  /usr/lib/virtualbox/VBoxHeadless
+Arg[0]: /usr/lib/virtualbox/VBoxHeadless
+Arg[1]: --comment
+Arg[2]: Puppet-Aux_puppetaux_1691395510026_16485
+Arg[3]: --startvm
+Arg[4]: 4b013415-1c12-4dc7-8589-6100aac2d29e
+Arg[5]: --vrde
+Arg[6]: config
+AddRef: illegal refcnt=3221225469 state=2
